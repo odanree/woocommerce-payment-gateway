@@ -39,7 +39,7 @@ class WC_Tokenization_Manager {
         $token->set_user_id( $customer_id );
         $token->set_last4( $card_meta['last4'] ?? '0000' );
         $token->set_expiry_month( $card_meta['exp_month'] ?? '12' );
-        $token->set_expiry_year( $card_meta['exp_year'] ?? (string) ( (int) date( 'Y' ) + 3 ) );
+        $token->set_expiry_year( $card_meta['exp_year'] ?? (string) ( (int) gmdate( 'Y' ) + 3 ) );
         $token->set_card_type( strtolower( $card_meta['brand'] ?? 'visa' ) );
         $token->save();
     }
@@ -60,7 +60,8 @@ class WC_Tokenization_Manager {
         }
 
         // Return the most recently added token.
-        return end( $tokens ) ?: null;
+        $last = end( $tokens );
+        return $last ? $last : null;
     }
 
     /**

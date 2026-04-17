@@ -27,7 +27,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
 
     private string $security_key;
     private string $collectjs_key;
-    private bool   $test_mode;
+    private bool $test_mode;
 
     public function __construct() {
         $this->id                 = 'nmi';
@@ -69,7 +69,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
             'nmi-collectjs',
             'https://secure.nmi.com/token/Collect.js',
             [],
-            null,
+            null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External CDN script; version is controlled by NMI.
             true
         );
         wp_add_inline_script( 'nmi-collectjs', sprintf(
@@ -94,6 +94,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
     }
 
     public function validate_fields(): bool {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce checkout nonce (woocommerce-process-checkout) covers this field.
         if ( empty( $_POST['nmi_payment_token'] ) ) {
             wc_add_notice( __( 'Payment tokenization failed. Please check your card details and try again.', 'wc-gateway-hr' ), 'error' );
             return false;
@@ -114,6 +115,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
             return [ 'result' => 'success', 'redirect' => $this->get_return_url( $order ) ];
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce checkout nonce (woocommerce-process-checkout) covers this field.
         $token = sanitize_text_field( wp_unslash( $_POST['nmi_payment_token'] ?? '' ) );
 
         $response = $this->send_charge_request( $order, $token );

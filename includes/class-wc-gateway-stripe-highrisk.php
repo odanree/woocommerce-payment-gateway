@@ -19,7 +19,7 @@ class WC_Gateway_Stripe_HighRisk extends WC_Payment_Gateway {
 
     private string $secret_key;
     private string $publishable_key;
-    private bool   $test_mode;
+    private bool $test_mode;
 
     public function __construct() {
         $this->id                 = 'stripe_highrisk';
@@ -57,7 +57,7 @@ class WC_Gateway_Stripe_HighRisk extends WC_Payment_Gateway {
         if ( ! is_checkout() ) {
             return;
         }
-        wp_enqueue_script( 'stripe-js', 'https://js.stripe.com/v3/', [], null, true );
+        wp_enqueue_script( 'stripe-js', 'https://js.stripe.com/v3/', [], null, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External CDN script; version is controlled by Stripe.
         wp_add_inline_script( 'stripe-js', sprintf(
             'const stripe = Stripe("%s"); const elements = stripe.elements(); const cardElement = elements.create("card"); cardElement.mount("#stripe-card-element"); document.getElementById("stripe-checkout-form").addEventListener("submit", async (e) => { e.preventDefault(); const {paymentMethod, error} = await stripe.createPaymentMethod({type:"card", card:cardElement}); if(error){document.getElementById("stripe-card-errors").textContent=error.message;}else{document.getElementById("stripe_payment_method_id").value=paymentMethod.id; e.target.submit();} });',
             esc_js( $this->publishable_key )
@@ -77,6 +77,7 @@ class WC_Gateway_Stripe_HighRisk extends WC_Payment_Gateway {
     }
 
     public function validate_fields(): bool {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce checkout nonce (woocommerce-process-checkout) covers this field.
         if ( empty( $_POST['stripe_payment_method_id'] ) ) {
             wc_add_notice( __( 'Payment tokenization failed. Please check your card details.', 'wc-gateway-hr' ), 'error' );
             return false;
@@ -96,6 +97,7 @@ class WC_Gateway_Stripe_HighRisk extends WC_Payment_Gateway {
             return [ 'result' => 'success', 'redirect' => $this->get_return_url( $order ) ];
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce checkout nonce (woocommerce-process-checkout) covers this field.
         $payment_method_id = sanitize_text_field( wp_unslash( $_POST['stripe_payment_method_id'] ?? '' ) );
 
         $intent = $this->create_payment_intent( $order, $payment_method_id );
@@ -103,6 +105,7 @@ class WC_Gateway_Stripe_HighRisk extends WC_Payment_Gateway {
         if ( isset( $intent['status'] ) && in_array( $intent['status'], [ 'succeeded', 'requires_capture' ], true ) ) {
             $order->payment_complete( $intent['id'] ?? '' );
             $order->add_order_note( sprintf(
+                /* translators: %s: Stripe PaymentIntent ID */
                 __( 'Stripe PaymentIntent succeeded. Intent ID: %s.', 'wc-gateway-hr' ),
                 $intent['id'] ?? ''
             ) );
@@ -137,7 +140,7 @@ class WC_Gateway_Stripe_HighRisk extends WC_Payment_Gateway {
         $response = $this->stripe_request( 'POST', '/refunds', [
             'charge' => $charge_id,
             'amount' => (int) round( (float) $amount * 100 ), // Stripe uses cents.
-            'reason' => $reason ?: 'requested_by_customer',
+            'reason' => ! empty( $reason ) ? $reason : 'requested_by_customer',
         ] );
 
         if ( isset( $response['id'] ) && 0 === strpos( $response['id'], 're_' ) ) {
