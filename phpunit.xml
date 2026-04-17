@@ -8,11 +8,7 @@
 >
     <testsuites>
         <testsuite name="Unit">
-            <file>tests/test-idempotency.php</file>
-            <file>tests/test-webhook-handler.php</file>
-            <file>tests/test-failover-manager.php</file>
-            <file>tests/test-nmi-gateway.php</file>
-            <file>tests/test-stripe-gateway.php</file>
+            <directory suffix=".php">tests/</directory>
         </testsuite>
     </testsuites>
 
