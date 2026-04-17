@@ -124,10 +124,6 @@ function plugin_dir_path( string $file ): string { return dirname( $file ) . '/'
 function plugin_dir_url( string $file ): string { return 'http://localhost/'; }
 function __( string $text, string $domain = 'default' ): string { return $text; }
 function esc_html__( string $text, string $domain = 'default' ): string { return $text; }
-function sprintf( ...$args ): string { return \sprintf( ...$args ); }
-function number_format( ...$args ): string { return \number_format( ...$args ); }
-function defined( string $constant ): bool { return \defined( $constant ); }
-function date( string $format ): string { return \date( $format ); }
 function get_woocommerce_currency_symbol(): string { return '$'; }
 function wc_price( $price ): string { return '$' . number_format( (float) $price, 2 ); }
 
