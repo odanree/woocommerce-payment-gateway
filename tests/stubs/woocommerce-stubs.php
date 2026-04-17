@@ -50,8 +50,11 @@ class WC_Payment_Tokens {
     }
 }
 
+/** Minimal WC_Order base so type hints in gateway methods are satisfied in tests. */
+abstract class WC_Order {}
+
 /** @internal Test-only order stub */
-class WC_Order_Stub {
+class WC_Order_Stub extends WC_Order {
     private array $data;
     private array $notes = [];
 
