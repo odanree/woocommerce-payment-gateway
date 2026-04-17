@@ -12,14 +12,21 @@
         <!-- Indentation: allow 4-space indent instead of tabs -->
         <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
 
-        <!-- Arrays: allow short syntax [] (PHP 5.4+) -->
+        <!-- Arrays: allow short syntax [] -->
+        <!-- Note: WordPress-Extra pulls in Universal, not Generic, for this sniff -->
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
         <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
 
+        <!-- Array formatting: don't require each associative key on its own line -->
+        <exclude name="WordPress.Arrays.ArrayDeclarationSpacing"/>
+
+        <!-- Assignment alignment: don't require = alignment across statements -->
+        <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+
         <!-- Function calls: allow closure-as-argument on same line as call -->
-        <!-- e.g. add_action( 'hook', function() { ... } ); -->
         <exclude name="PEAR.Functions.FunctionCallSignature"/>
 
-        <!-- Array alignment: don't require => alignment in multi-line arrays -->
+        <!-- Array arrow alignment: don't require => alignment -->
         <exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
     </rule>
 
