@@ -1,7 +1,7 @@
 # ADR 003 — Client-side tokenization (Collect.js / Stripe.js)
 
 **Status**: Accepted
-**Date**: 2024-01-15
+**Date**: 2026-04-16
 
 ## Context
 

@@ -1,7 +1,7 @@
 # ADR 001 — NMI as primary payment processor
 
 **Status**: Accepted
-**Date**: 2024-01-15
+**Date**: 2026-04-16
 
 ## Context
 

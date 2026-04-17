@@ -1,7 +1,7 @@
 # ADR 002 — Stripe failover via config swap (no code change)
 
 **Status**: Accepted
-**Date**: 2024-01-15
+**Date**: 2026-04-16
 
 ## Context
 
