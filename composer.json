@@ -26,8 +26,8 @@
     },
     "scripts": {
         "test": "phpunit --testdox",
-        "lint": "phpcs --standard=WordPress-Extra includes/ woocommerce-payment-gateway.php",
-        "lint-fix": "phpcbf --standard=WordPress-Extra includes/ woocommerce-payment-gateway.php"
+        "lint": "phpcs --standard=.phpcs.xml",
+        "lint-fix": "phpcbf --standard=.phpcs.xml"
     },
     "config": {
         "allow-plugins": {

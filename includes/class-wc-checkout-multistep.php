@@ -106,6 +106,7 @@ class WC_Checkout_Multistep {
      * Standard WC validation handles final step; this adds step-aware feedback.
      */
     public static function validate_step(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce checkout nonce (woocommerce-process-checkout) covers this field.
         $step = (int) ( $_POST['wc_checkout_step'] ?? 3 ); // Default to final step.
         if ( $step < 2 ) {
             // Don't require payment fields on step 1.
