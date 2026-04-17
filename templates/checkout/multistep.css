@@ -1,0 +1,164 @@
+/**
+ * Multi-step checkout progress indicator
+ * Loaded only on checkout page (is_checkout() check in WC_Checkout_Multistep::enqueue)
+ */
+
+/* ── Progress bar container ──────────────────────────────────────────── */
+.wc-multistep-progress {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0;
+    margin: 0 0 2rem;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* ── Individual step ─────────────────────────────────────────────────── */
+.wc-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+    max-width: 160px;
+    color: #9ca3af;          /* inactive: gray */
+    font-size: 0.875rem;
+    cursor: default;
+}
+
+/* Connector line between steps */
+.wc-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 18px;               /* center of the number circle */
+    left: calc(50% + 20px);
+    right: calc(-50% + 20px);
+    height: 2px;
+    background: #e5e7eb;
+    z-index: 0;
+}
+
+.wc-step--done:not(:last-child)::after,
+.wc-step--active:not(:last-child)::after {
+    background: #7c3aed;     /* brand purple for completed connector */
+}
+
+/* ── Step number circle ──────────────────────────────────────────────── */
+.wc-step__num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    position: relative;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+.wc-step--done .wc-step__num {
+    border-color: #7c3aed;
+    background: #7c3aed;
+    color: #fff;
+}
+
+/* Checkmark for completed steps */
+.wc-step--done .wc-step__num::after {
+    content: '✓';
+    font-size: 0.85rem;
+}
+
+.wc-step--done .wc-step__num > * {
+    display: none;           /* hide the number, show checkmark */
+}
+
+.wc-step--active .wc-step__num {
+    border-color: #7c3aed;
+    color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* ── Step label ──────────────────────────────────────────────────────── */
+.wc-step__label {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.wc-step--active .wc-step__label {
+    color: #7c3aed;
+    font-weight: 600;
+}
+
+.wc-step--done .wc-step__label {
+    color: #6d28d9;
+}
+
+/* ── Step panels (shown/hidden by JS) ───────────────────────────────── */
+.wc-checkout-step {
+    display: none;
+}
+
+.wc-checkout-step.wc-checkout-step--active {
+    display: block;
+}
+
+/* ── Step navigation buttons ─────────────────────────────────────────── */
+.wc-step-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.wc-step-nav__back {
+    background: none;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+    padding: 0.625rem 1.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: border-color 0.15s;
+}
+
+.wc-step-nav__back:hover {
+    border-color: #9ca3af;
+}
+
+.wc-step-nav__next {
+    background: #7c3aed;
+    border: none;
+    color: #fff;
+    padding: 0.625rem 1.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.wc-step-nav__next:hover {
+    background: #6d28d9;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .wc-step__label {
+        font-size: 0.7rem;
+    }
+    .wc-step__num {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
+    }
+}
