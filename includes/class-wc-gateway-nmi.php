@@ -102,7 +102,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
         return true;
     }
 
-    public function process_payment( int $order_id ): array {
+    public function process_payment( $order_id ): array {
         $order = wc_get_order( $order_id );
         if ( ! $order ) {
             return [ 'result' => 'failure' ];
