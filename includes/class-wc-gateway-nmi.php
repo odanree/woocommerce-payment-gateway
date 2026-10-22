@@ -149,7 +149,12 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
             // so the gateway stays unit-testable outside a WP bootstrap.
             $order->payment_complete( 'DEMO-' . strtoupper( bin2hex( random_bytes( 4 ) ) ) );
             $order->add_order_note( __( 'Demo mode: payment simulated. No real charge was made.', 'wc-gateway-hr' ) );
-            WC()->cart->empty_cart();
+            // Guard WC() so the gateway stays unit-testable outside a WP
+            // bootstrap. In prod the singleton always exists; in PHPUnit
+            // (no WC loaded) the empty_cart call is skipped harmlessly.
+            if ( function_exists( 'WC' ) ) {
+                WC()->cart->empty_cart();
+            }
             return [ 'result' => 'success', 'redirect' => $this->get_return_url( $order ) ];
         }
 
