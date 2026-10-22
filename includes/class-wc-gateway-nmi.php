@@ -28,7 +28,6 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
     private string $security_key;
     private string $collectjs_key;
     private bool $test_mode;
-    private bool $demo_mode;
 
     public function __construct() {
         $this->id                 = 'nmi';
@@ -45,12 +44,22 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
         $this->security_key  = $this->get_option( 'security_key', '' );
         $this->collectjs_key = $this->get_option( 'collectjs_key', '' );
         $this->test_mode     = 'yes' === $this->get_option( 'test_mode', 'no' );
-        // Demo mode: active when no API keys are configured.
-        // Shows standard card fields and simulates a successful charge.
-        $this->demo_mode     = empty( $this->security_key ) && empty( $this->collectjs_key );
 
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+    }
+
+    /**
+     * Demo mode: active when no API keys are configured.
+     * Shows standard card fields and simulates a successful charge.
+     *
+     * Computed on-demand (not cached in __construct) so option changes
+     * after instantiation are honored — matters for the test harness,
+     * which creates the gateway with empty keys then set_option()s them.
+     */
+    private function is_demo_mode(): bool {
+        return empty( $this->get_option( 'security_key', '' ) )
+            && empty( $this->get_option( 'collectjs_key', '' ) );
     }
 
     public function init_form_fields(): void {
@@ -66,7 +75,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
     }
 
     public function enqueue_scripts(): void {
-        if ( ! is_checkout() || $this->demo_mode ) {
+        if ( ! is_checkout() || $this->is_demo_mode() ) {
             return;
         }
         wp_enqueue_script(
@@ -98,7 +107,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
     }
 
     public function payment_fields(): void {
-        if ( $this->demo_mode ) {
+        if ( $this->is_demo_mode() ) {
             echo '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:.5rem;padding:.875rem 1rem;margin-bottom:1rem;font-size:.8rem;color:#92400e;">';
             echo '<strong>Demo mode</strong> — no NMI API keys configured. Any card details are accepted and the order will be marked paid without a real charge.';
             echo '</div>';
@@ -144,7 +153,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
         }
 
         // Demo mode: simulate a successful charge without hitting the NMI API.
-        if ( $this->demo_mode ) {
+        if ( $this->is_demo_mode() ) {
             // bin2hex(random_bytes(4)) = 8 hex chars; avoids wp_generate_password
             // so the gateway stays unit-testable outside a WP bootstrap.
             $order->payment_complete( 'DEMO-' . strtoupper( bin2hex( random_bytes( 4 ) ) ) );
