@@ -3,7 +3,7 @@
  * Loaded only on checkout page (is_checkout() check in WC_Checkout_Multistep::enqueue)
  */
 
-/* ── Progress bar container ──────────────────────────────────────────── */
+/* ── Progress bar container — full-width row above 2-column layout ───── */
 .wc-multistep-progress {
     display: flex;
     justify-content: center;
@@ -12,6 +12,7 @@
     margin: 0 0 2rem;
     padding: 1.5rem 0;
     border-bottom: 1px solid #e5e7eb;
+    width: 100%;
 }
 
 /* ── Individual step ─────────────────────────────────────────────────── */
@@ -118,6 +119,7 @@
     margin-top: 1.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid #e5e7eb;
+    clear: both; /* break out of WC's internal float columns (.col-1/.col-2) */
 }
 
 .wc-step-nav__back {
@@ -151,7 +153,59 @@
     background: #6d28d9;
 }
 
+/* ── 2-column checkout layout ────────────────────────────────────────── */
+.wc-checkout-layout {
+    display: flex;
+    gap: 2.5rem;
+    align-items: flex-start;
+}
+
+.wc-checkout-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.wc-checkout-sidebar {
+    width: 420px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 1.5rem;
+}
+
+/* Sidebar heading */
+.wc-checkout-sidebar #order_review_heading {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+/* Step 3 review note */
+.wc-review-note {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin: 0 0 1.5rem;
+    padding: 1rem 1.25rem;
+    background: #f9fafb;
+    border: 1px solid #f3f4f6;
+    border-radius: 0.5rem;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .wc-checkout-layout {
+        flex-direction: column;
+    }
+
+    .wc-checkout-sidebar {
+        width: 100%;
+        position: static;
+    }
+}
+
 @media (max-width: 600px) {
     .wc-step__label {
         font-size: 0.7rem;

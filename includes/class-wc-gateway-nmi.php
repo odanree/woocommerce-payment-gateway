@@ -39,14 +39,27 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
         $this->init_form_fields();
         $this->init_settings();
 
-        $this->title        = $this->get_option( 'title', 'Credit / Debit Card (NMI)' );
-        $this->description  = $this->get_option( 'description', 'Pay securely via NMI. Your card details are tokenized and never stored on our server.' );
-        $this->security_key = $this->get_option( 'security_key', '' );
+        $this->title         = $this->get_option( 'title', 'Credit / Debit Card (NMI)' );
+        $this->description   = $this->get_option( 'description', 'Pay securely via NMI. Your card details are tokenized and never stored on our server.' );
+        $this->security_key  = $this->get_option( 'security_key', '' );
         $this->collectjs_key = $this->get_option( 'collectjs_key', '' );
-        $this->test_mode    = 'yes' === $this->get_option( 'test_mode', 'no' );
+        $this->test_mode     = 'yes' === $this->get_option( 'test_mode', 'no' );
 
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+    }
+
+    /**
+     * Demo mode: active when no API keys are configured.
+     * Shows standard card fields and simulates a successful charge.
+     *
+     * Computed on-demand (not cached in __construct) so option changes
+     * after instantiation are honored — matters for the test harness,
+     * which creates the gateway with empty keys then set_option()s them.
+     */
+    private function is_demo_mode(): bool {
+        return empty( $this->get_option( 'security_key', '' ) )
+            && empty( $this->get_option( 'collectjs_key', '' ) );
     }
 
     public function init_form_fields(): void {
@@ -62,7 +75,7 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
     }
 
     public function enqueue_scripts(): void {
-        if ( ! is_checkout() ) {
+        if ( ! is_checkout() || $this->is_demo_mode() ) {
             return;
         }
         wp_enqueue_script(
@@ -72,13 +85,44 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
             null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External CDN script; version is controlled by NMI.
             true
         );
+        // Intercept form submit → tokenize → put token in hidden field → re-submit.
         wp_add_inline_script( 'nmi-collectjs', sprintf(
-            'CollectJS.configure({tokenizationKey: "%s", callback: function(response) { document.getElementById("nmi_payment_token").value = response.token; document.getElementById("nmi-checkout-form").submit(); }});',
+            'CollectJS.configure({
+                tokenizationKey: "%s",
+                callback: function(response) {
+                    document.getElementById("nmi_payment_token").value = response.token;
+                    document.querySelector("form.woocommerce-checkout").submit();
+                }
+            });
+            jQuery(function($) {
+                $("form.woocommerce-checkout").on("submit", function(e) {
+                    if (!$("#nmi_payment_token").val()) {
+                        e.preventDefault();
+                        CollectJS.startPaymentRequest();
+                    }
+                });
+            });',
             esc_js( $this->collectjs_key )
         ) );
     }
 
     public function payment_fields(): void {
+        if ( $this->is_demo_mode() ) {
+            echo '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:.5rem;padding:.875rem 1rem;margin-bottom:1rem;font-size:.8rem;color:#92400e;">';
+            echo '<strong>Demo mode</strong> — no NMI API keys configured. Any card details are accepted and the order will be marked paid without a real charge.';
+            echo '</div>';
+            echo '<p style="margin-bottom:.5rem;font-size:.85rem;font-weight:600;color:#374151;">Card number</p>';
+            echo '<input type="text" name="nmi_demo_card" placeholder="4111 1111 1111 1111" style="width:100%;padding:.6rem .75rem;border:1px solid #e5e7eb;border-radius:.375rem;margin-bottom:.75rem;font-size:.9rem;" />';
+            echo '<div style="display:flex;gap:.75rem;">';
+            echo '<div style="flex:1"><p style="margin-bottom:.5rem;font-size:.85rem;font-weight:600;color:#374151;">Expiry</p><input type="text" name="nmi_demo_expiry" placeholder="MM / YY" style="width:100%;padding:.6rem .75rem;border:1px solid #e5e7eb;border-radius:.375rem;font-size:.9rem;" /></div>';
+            echo '<div style="flex:1"><p style="margin-bottom:.5rem;font-size:.85rem;font-weight:600;color:#374151;">CVV</p><input type="text" name="nmi_demo_cvv" placeholder="999" style="width:100%;padding:.6rem .75rem;border:1px solid #e5e7eb;border-radius:.375rem;font-size:.9rem;" /></div>';
+            echo '</div>';
+            // Pre-populate token so validate_fields passes.
+            // bin2hex(random_bytes(6)) = 12 hex chars; avoids wp_generate_password
+            // so the gateway stays unit-testable outside a WP bootstrap.
+            echo '<input type="hidden" id="nmi_payment_token" name="nmi_payment_token" value="demo_token_' . esc_attr( bin2hex( random_bytes( 6 ) ) ) . '" />';
+            return;
+        }
         if ( $this->description ) {
             echo '<p>' . wp_kses_post( $this->description ) . '</p>';
         }
@@ -106,6 +150,21 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
         $order = wc_get_order( $order_id );
         if ( ! $order ) {
             return [ 'result' => 'failure' ];
+        }
+
+        // Demo mode: simulate a successful charge without hitting the NMI API.
+        if ( $this->is_demo_mode() ) {
+            // bin2hex(random_bytes(4)) = 8 hex chars; avoids wp_generate_password
+            // so the gateway stays unit-testable outside a WP bootstrap.
+            $order->payment_complete( 'DEMO-' . strtoupper( bin2hex( random_bytes( 4 ) ) ) );
+            $order->add_order_note( __( 'Demo mode: payment simulated. No real charge was made.', 'wc-gateway-hr' ) );
+            // Guard WC() so the gateway stays unit-testable outside a WP
+            // bootstrap. In prod the singleton always exists; in PHPUnit
+            // (no WC loaded) the empty_cart call is skipped harmlessly.
+            if ( function_exists( 'WC' ) ) {
+                WC()->cart->empty_cart();
+            }
+            return [ 'result' => 'success', 'redirect' => $this->get_return_url( $order ) ];
         }
 
         // Idempotency check — prevent double-charge on network retry.
