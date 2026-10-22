@@ -48,19 +48,18 @@
      * Show/hide back button; change next button label on last step.
      */
     function updateNavButtons() {
-        const $back = $('.wc-step-nav__back');
-        const $next = $('.wc-step-nav__next');
+        // Back button: visible on steps 2+
+        $('.wc-step-nav__back').toggle(currentStep > 1);
 
-        $back.toggle(currentStep > 1);
-
-        if (currentStep === TOTAL_STEPS) {
-            $next.hide();
-            // On the final step, the standard WC place-order button takes over.
-            $('#place_order').show();
-        } else {
-            $next.show().text(currentStep === TOTAL_STEPS - 1 ? 'Review order →' : 'Continue →');
-            $('#place_order').hide();
+        // Next buttons per panel — only show the one for the current step.
+        // #place_order stays inside #payment (step 2) at all times; the review
+        // step uses .wc-place-order-trigger which programmatically submits.
+        for (let s = 1; s <= TOTAL_STEPS; s++) {
+            const $nav = $(`.wc-checkout-step[data-step="${s}"] .wc-step-nav`);
+            $nav.toggle(s === currentStep);
         }
+        // Always keep real WC button hidden — we drive submission from step 3 trigger
+        $('#place_order').hide();
     }
 
     /**
@@ -98,22 +97,46 @@
      * Called once on DOM ready.
      */
     function initStepPanels() {
-        // Step 1: billing/shipping fieldsets
+        const $form = $('form.woocommerce-checkout');
+
+        // Detach pieces we need to rearrange
+        const $payment  = $('#payment').detach();
+        const $progress = $('.wc-multistep-progress').detach();
+        const $heading  = $('#order_review_heading').detach();
+        const $review   = $('#order_review').detach();
+
+        // ── Build 2-column layout ────────────────────────────────────────────
+        // Main column: progress bar + step panels (left)
+        // Sidebar: order summary always visible (right)
+        const $layout  = $('<div class="wc-checkout-layout">');
+        const $main    = $('<div class="wc-checkout-main">');
+        const $sidebar = $('<div class="wc-checkout-sidebar">');
+
+        // Step 1: billing / shipping
         const $step1 = $('<div class="wc-checkout-step" data-step="1">');
-        $('#customer_details').wrap($step1);
+        $step1.append($('#customer_details'));
+        $main.append($step1);
 
-        // Step 2: payment method
+        // Step 2: payment
         const $step2 = $('<div class="wc-checkout-step" data-step="2">');
-        $('#payment').wrap($step2);
+        $step2.append($payment);
+        $main.append($step2);
 
-        // Step 3: order review
+        // Step 3: confirmation (order summary is always visible in sidebar)
         const $step3 = $('<div class="wc-checkout-step" data-step="3">');
-        $('.woocommerce-checkout-review-order').wrap($step3);
+        $step3.append('<p class="wc-review-note">Review your order in the summary, then place your order.</p>');
+        $main.append($step3);
 
-        // Add hidden step field
-        $('<input type="hidden" name="wc_checkout_step" value="1">').appendTo('#order_review');
+        // Sidebar: heading + order review (always visible on all steps)
+        $sidebar.append($heading, $review);
 
-        // Add nav buttons below each step panel (except last)
+        // Hidden step field and assemble
+        $('<input type="hidden" name="wc_checkout_step" value="1">').appendTo($review);
+        $layout.append($main, $sidebar);
+        // Progress bar sits above the 2-column layout (spans full width)
+        $form.append($progress, $layout);
+
+        // ── Nav buttons ──────────────────────────────────────────────────────
         for (let s = 1; s < TOTAL_STEPS; s++) {
             const $nav = $(`
                 <div class="wc-step-nav">
@@ -124,8 +147,13 @@
             $(`.wc-checkout-step[data-step="${s}"]`).append($nav);
         }
 
-        // Move place_order button to step 3 (it exists in WC markup inside #payment)
-        $('#place_order').appendTo(`.wc-checkout-step[data-step="${TOTAL_STEPS}"]`);
+        // Step 3 place order trigger
+        $step3.append(`
+            <div class="wc-step-nav wc-step-nav--place-order">
+                <button type="button" class="wc-step-nav__back">← Back</button>
+                <button type="button" class="wc-step-nav__next wc-place-order-trigger">Place Order</button>
+            </div>
+        `);
 
         goToStep(1);
     }
@@ -144,12 +172,24 @@
             goToStep(currentStep - 1);
         });
 
+        // Place Order trigger on review step: click the real WC button in step 2.
+        // We keep #place_order inside #payment so WC's update_checkout AJAX never
+        // destroys it; we just programmatically fire it from the review step.
+        $(document).on('click', '.wc-place-order-trigger', function () {
+            $('#place_order').trigger('click');
+        });
+
         // When WooCommerce triggers a checkout error (e.g. payment declined),
         // jump back to the payment step so the customer can fix their card.
         $(document.body).on('checkout_error', function () {
             if (currentStep === TOTAL_STEPS) {
                 goToStep(2); // back to payment step
             }
+        });
+
+        // After WC replaces #payment content, keep #place_order hidden.
+        $(document.body).on('updated_checkout', function () {
+            $('#place_order').hide();
         });
     }
 
