@@ -109,7 +109,9 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
             echo '<div style="flex:1"><p style="margin-bottom:.5rem;font-size:.85rem;font-weight:600;color:#374151;">CVV</p><input type="text" name="nmi_demo_cvv" placeholder="999" style="width:100%;padding:.6rem .75rem;border:1px solid #e5e7eb;border-radius:.375rem;font-size:.9rem;" /></div>';
             echo '</div>';
             // Pre-populate token so validate_fields passes.
-            echo '<input type="hidden" id="nmi_payment_token" name="nmi_payment_token" value="demo_token_' . esc_attr( wp_generate_password( 12, false ) ) . '" />';
+            // bin2hex(random_bytes(6)) = 12 hex chars; avoids wp_generate_password
+            // so the gateway stays unit-testable outside a WP bootstrap.
+            echo '<input type="hidden" id="nmi_payment_token" name="nmi_payment_token" value="demo_token_' . esc_attr( bin2hex( random_bytes( 6 ) ) ) . '" />';
             return;
         }
         if ( $this->description ) {
@@ -143,7 +145,9 @@ class WC_Gateway_NMI extends WC_Payment_Gateway {
 
         // Demo mode: simulate a successful charge without hitting the NMI API.
         if ( $this->demo_mode ) {
-            $order->payment_complete( 'DEMO-' . strtoupper( wp_generate_password( 8, false ) ) );
+            // bin2hex(random_bytes(4)) = 8 hex chars; avoids wp_generate_password
+            // so the gateway stays unit-testable outside a WP bootstrap.
+            $order->payment_complete( 'DEMO-' . strtoupper( bin2hex( random_bytes( 4 ) ) ) );
             $order->add_order_note( __( 'Demo mode: payment simulated. No real charge was made.', 'wc-gateway-hr' ) );
             WC()->cart->empty_cart();
             return [ 'result' => 'success', 'redirect' => $this->get_return_url( $order ) ];
